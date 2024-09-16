@@ -1,50 +1,44 @@
-#include <queue>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
+#include <iostream>
+#include <vector>
 #include <functional>
 
+// Define a pipeline stage
+template<typename T>
+using PipelineStage = std::function<T(T)>;
+
+// Pipeline class
+template<typename T>
 class Pipeline {
 public:
-    Pipeline() : stop(false) {
-        worker = std::thread([this] { this->process(); });
+    void addStage(PipelineStage<T> stage) {
+        stages.push_back(stage);
     }
 
-    ~Pipeline() {
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            stop = true;
+    T process(T input) {
+        T result = input;
+        for (auto& stage : stages) {
+            result = stage(result);
         }
-        condVar.notify_all();
-        worker.join();
-    }
-
-    void enqueueTask(std::function<void()> task) {
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            tasks.push(task);
-        }
-        condVar.notify_one();
+        return result;
     }
 
 private:
-    void process() {
-        while (true) {
-            std::function<void()> task;
-            {
-                std::unique_lock<std::mutex> lock(mutex);
-                condVar.wait(lock, [this] { return stop || !tasks.empty(); });
-                if (stop && tasks.empty()) return;
-                task = tasks.front();
-                tasks.pop();
-            }
-            task();
-        }
-    }
-
-    std::queue<std::function<void()>> tasks;
-    std::mutex mutex;
-    std::condition_variable condVar;
-    std::thread worker;
-    bool stop;
+    std::vector<PipelineStage<T>> stages;
 };
+
+// Example usage
+int main() {
+    Pipeline<int> pipeline;
+
+    // Add stages to the pipeline
+    pipeline.addStage([](int x) { return x + 1; });
+    pipeline.addStage([](int x) { return x * 2; });
+    pipeline.addStage([](int x) { return x - 3; });
+
+    // Process input through the pipeline
+    int input = 5;
+    int result = pipeline.process(input);
+
+    std::cout << "Result: " << result << std::endl; // Should print 9
+    return 0;
+}

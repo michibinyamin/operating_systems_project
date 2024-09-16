@@ -1,3 +1,4 @@
+#pragma once
 #include <bits/stdc++.h>
 #include <iostream>
 #include <string>
@@ -29,7 +30,10 @@ class Graph{
 
         bool condition = false;
 
-        bool New_graph(int v, int m){
+        bool New_graph(int v, int m){   // V - amount of vertecies, M - amount of edges
+
+            // Create Here a matrix VxV
+
             char buffer[BUFFER_SIZE];
             int valread;
             string msg = "Please enter the edges: (for example- 1 2)\n";
@@ -46,12 +50,19 @@ class Graph{
                 {
                     return false;
                 }
+                
+                // Ask here for the weight and add here the edges to the matrix in both sides
+                // Very simple
+
                 edges.push_back({src, dest});
             }
             return true;
         }
 
-        bool Removeedge(int v, int m){
+        bool Removeedge(int v, int m){  // V - first vertex, M - second vertex
+
+            // Remove from the matrics ( turn to 0)
+
             for (auto it = edges.begin(); it != edges.end(); ++it) {
                 if ((*it)[0] == v && (*it)[1] == m) {
                     edges.erase(it);
@@ -94,6 +105,9 @@ class Graph{
                 // Read the numbers separated by comma
                 iss >> v >> comma >> m;
                 //size++;
+
+                // Ask again for weight and add to matrics(in both sides)
+
                 edges.push_back({v, m});
                 string success_msg = "Edge (" + to_string(v) + " -> " + to_string(m) + ") added.\n";
                 write(current_client_fd, success_msg.c_str(), success_msg.size());
@@ -119,6 +133,14 @@ class Graph{
                 write(current_client_fd, error_msg.c_str(), error_msg.size());
                 //cout << "Invalid command.\n";
             }
+        }
+
+        vector<vector<int>> getAdjacencyMatrix() const{
+            return edges;
+        }
+
+        int getEdgeWeight(int u, int v) const{
+            return edges[u][v];
         }
 
         void PrintEdges(){

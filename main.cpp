@@ -14,8 +14,12 @@
 #include <csignal>
 #include <thread>
 #include <mutex>
-#include "Graph.cpp"
+//#include "Graph.cpp"
 #include "Proactor.h"
+//#include "MSTAlgorithm.hpp"
+#include "MSTFactory.cpp"
+//#include "Tree.cpp"
+//#include "primAlgorithm.cpp"
 
 #define PORT 9034
 #define BUFFER_SIZE 1024
@@ -110,16 +114,11 @@ void* handle_client(int client_fd) {
                 write(client_fd, msg.c_str(), msg.size());
                 int strategy = read(client_fd, buffer, BUFFER_SIZE);
                 string command2(buffer, strategy);
-                if(command2.find("1")){
-                    // Implement Prim
-                }
-                else if(command2.find("2")){
-                    // Implement Kruskal
-                }
-                else{
-                    string response = "Invalid command.\n";
-                    write(client_fd, response.c_str(), response.size());
-                }
+                
+                MSTAlgorithm* mst_algo = MSTFactory::createMSTSolver(std::stoi(command2));
+                Tree t = mst_algo->calculateMST(graph);
+                t.printTree();  // Test
+
             } 
             else {
                 string response = "Invalid command.\n";
