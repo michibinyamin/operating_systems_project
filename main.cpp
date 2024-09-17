@@ -144,7 +144,7 @@ int main() {
     while (true) {  
         int client_fd = server.new_client();    
         if (client_fd >= 0) {   // New client
-            string options_msg = "Options : Newgraph n,m   Newedge i,j    Removeedge i,j    msp\n";
+            string options_msg = "Options : Newgraph n,m   Newedge i,j    Removeedge i,j    MST\n";
             write(client_fd, options_msg.c_str(), options_msg.size());
             cout << "New client connected\n";
             
