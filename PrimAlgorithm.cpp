@@ -1,44 +1,62 @@
+#include <iostream>
 #include <vector>
-#include <limits>
-#include <queue>
+#include <climits>
+
 #include "MSTAlgorithm.hpp"
+
+using namespace std;
 
 class PrimAlgorithm : public MSTAlgorithm {
 public:
     PrimAlgorithm() {}
 
-    Tree calculateMST(const Graph& graph) override{
-        int n = graph.getAdjacencyMatrix().size();
-        std::vector<int> key(n, INT_MAX);
-        std::vector<bool> inMST(n, false);
-        std::vector<int> parent(n, -1);
+    Graph calculateMST(const Graph &g) {
+        vector<vector<int>> graph = g.getAdjacencyMatrix();
+        int n = graph.size();
 
-        key[0] = 0; // Start from node 0
-        parent[0] = -1; // Root node has no parent
+        // Initialize MST adjacency matrix with -1 (no edge)
+        vector<vector<int>> mst(n, vector<int>(n, -1));
 
+        // Arrays to store information for Prim's algorithm
+        vector<int> key(n, INT_MAX);  // Stores the minimum weight edge for each vertex
+        vector<int> parent(n, -1);    // Stores the parent of each vertex in the MST
+        vector<bool> inMST(n, false); // True if the vertex is included in the MST
+
+        // Start from the first vertex
+        key[0] = 0;
+
+        // Prim's algorithm
         for (int count = 0; count < n - 1; ++count) {
-            int u = -1;
-            for (int i = 0; i < n; ++i) {
-                if (!inMST[i] && (u == -1 || key[i] < key[u])) {
-                    u = i;
+            // Find the vertex with the minimum key value not yet in the MST
+            int minKey = INT_MAX, u = -1;
+            for (int v = 0; v < n; ++v) {
+                if (!inMST[v] && key[v] < minKey) {
+                    minKey = key[v];
+                    u = v;
                 }
             }
 
+            // Add the selected vertex to the MST
             inMST[u] = true;
 
+            // Update key and parent arrays for the adjacent vertices
             for (int v = 0; v < n; ++v) {
-                if (graph.getAdjacencyMatrix()[u][v] && !inMST[v] && graph.getAdjacencyMatrix()[u][v] < key[v]) {
-                    key[v] = graph.getAdjacencyMatrix()[u][v];
+                if (graph[u][v] != -1 && !inMST[v] && graph[u][v] < key[v]) {
+                    key[v] = graph[u][v];
                     parent[v] = u;
                 }
             }
         }
 
-        Tree tree(n);
-        for (int i = 1; i < n; ++i) {
-            tree.addEdge(parent[i], i);
+        // Construct the MST using the parent array
+        for (int v = 1; v < n; ++v) {
+            if (parent[v] != -1) {
+                mst[v][parent[v]] = graph[v][parent[v]];
+                mst[parent[v]][v] = graph[v][parent[v]];
+            }
         }
-        tree.computeDepths();
-        return tree;
+        Graph Tree;
+        Tree.New_graph(mst);
+        return Tree;
     }
 };

@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 #include <bits/stdc++.h>
 #include <iostream>
 #include <string>
@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+
 using namespace std;
 
 #define BUFFER_SIZE 1024
@@ -26,13 +27,14 @@ class Graph{
     private :
         int size;
         int current_client_fd;
-        vector<vector<int>> edges;
-
-        bool condition = false;
+        vector<vector<int>> adjmatrix;
 
         bool New_graph(int v, int m){   // V - amount of vertecies, M - amount of edges
-
-            // Create Here a matrix VxV
+            size = v;
+            // Set all the weights to -1
+            for (auto& row : adjmatrix) {
+                fill(row.begin(), row.end(), -1);
+            }
 
             char buffer[BUFFER_SIZE];
             int valread;
@@ -40,40 +42,47 @@ class Graph{
             write(current_client_fd,msg.c_str(),msg.size());
             //cout << "Please enter the edges: (for example- 1 2)\n"; // Make it print to client!!
             for (int i = 0; i < m; ++i) {
-                int src, dest;
+                int src, dest, weight;
                 valread = read(current_client_fd, buffer, BUFFER_SIZE);
                 buffer[valread] = '\0';
                 istringstream iss(buffer);
                 // Extract the two integers
                 iss >> src >> dest;
-                if(dest < 1 || dest > v || src < 1 || src > v)
+                if(dest < 0 || dest >= v || src < 0 || src >= v)
                 {
                     return false;
                 }
                 
-                // Ask here for the weight and add here the edges to the matrix in both sides
-                // Very simple
-
-                edges.push_back({src, dest});
+                string msg = "Please enter weight you want : \n";
+                write(current_client_fd,msg.c_str(),msg.size());
+                valread = read(current_client_fd, buffer, BUFFER_SIZE);
+                buffer[valread] = '\0';
+                istringstream iss2(buffer);
+                iss2 >> weight;
+                adjmatrix[src][dest] = weight;
+                adjmatrix[dest][src] = weight;
             }
             return true;
         }
 
         bool Removeedge(int v, int m){  // V - first vertex, M - second vertex
 
-            // Remove from the matrics ( turn to 0)
-
-            for (auto it = edges.begin(); it != edges.end(); ++it) {
-                if ((*it)[0] == v && (*it)[1] == m) {
-                    edges.erase(it);
-                    return true;
-                }
+            // Remove from the matrics (turn to -1)
+            if(adjmatrix[v][m] != -1){
+                adjmatrix[v][m] = -1;
+                adjmatrix[m][v] = -1;
+                return true;
             }
             return false;
         }
 
 
     public :
+        void New_graph(vector<vector<int>> matrix){
+            size = matrix.size();
+            adjmatrix = matrix;
+        }
+
         void Command_handle(int client, string command){
             current_client_fd = client;
             int v = 0;
@@ -86,7 +95,7 @@ class Graph{
                 // Read the numbers separated by comma
                 iss >> v >> comma >> m;
                 size = v;
-                edges.clear();
+                adjmatrix.clear();
                 if(New_graph(v,m)){
                     string success_msg = "New graph created with " + to_string(v) + " vertices and " + to_string(m) + " edges.\n";
                     write(current_client_fd, success_msg.c_str(), success_msg.size());
@@ -108,7 +117,7 @@ class Graph{
 
                 // Ask again for weight and add to matrics(in both sides)
 
-                edges.push_back({v, m});
+                adjmatrix.push_back({v, m});
                 string success_msg = "Edge (" + to_string(v) + " -> " + to_string(m) + ") added.\n";
                 write(current_client_fd, success_msg.c_str(), success_msg.size());
                 //cout << "Edge (" << v << " -> " << m << ") added.\n";   // Make it print to client!!                      
@@ -136,22 +145,21 @@ class Graph{
         }
 
         vector<vector<int>> getAdjacencyMatrix() const{
-            return edges;
+            return adjmatrix;
         }
 
         int getEdgeWeight(int u, int v) const{
-            return edges[u][v];
+            return adjmatrix[u][v];
         }
 
-        void PrintEdges(){
-            cout << "Graph edges are:\n";
-            for (size_t i = 0; i < edges.size(); i++)
-            {
-                cout << edges.at(i)[0];
-                cout << ",";
-                cout << edges.at(i)[1];
-                cout << " ";
+        // Print the adjacency matrix
+        void printGraph() const {
+            for (int i = 0; i < size; ++i) {
+                for (int j = 0; j < size; ++j) {
+                    std::cout << adjmatrix[i][j] << " ";
+                }
+                std::cout << std::endl;
             }
-            cout << "\n";
         }
+
 };

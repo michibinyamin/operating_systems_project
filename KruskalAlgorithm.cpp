@@ -1,87 +1,93 @@
+#include <iostream>
 #include <vector>
 #include <algorithm>
-#include <limits>
 #include "MSTAlgorithm.hpp"
+using namespace std;
+
+
 
 class KruskalAlgorithm : public MSTAlgorithm {
 public:
     KruskalAlgorithm() {}
 
-    Tree calculateMST(const Graph& graph) override {
-        int n = graph.getAdjacencyMatrix().size();
-        std::vector<Edge> edges;
+    Graph calculateMST(const Graph &g) {
+        vector<vector<int>> graph = g.getAdjacencyMatrix();
+        int n = graph.size();
+        vector<Edge> edges;
 
-        // Build the edge list
+        // Convert adjacency matrix to edge list
         for (int i = 0; i < n; ++i) {
             for (int j = i + 1; j < n; ++j) {
-                int weight = graph.getAdjacencyMatrix()[i][j];
-                if (weight > 0) {
-                    edges.push_back({i, j, weight});
+                if (graph[i][j] != -1) {
+                    edges.emplace_back(i, j, graph[i][j]);
                 }
             }
         }
 
         // Sort edges by weight
-        std::sort(edges.begin(), edges.end(), [](const Edge& a, const Edge& b) {
-            return a.weight < b.weight;
-        });
+        sort(edges.begin(), edges.end(), compareEdge);
 
-        // Initialize Union-Find structure
-        UnionFind uf(n);
-
-        Tree tree(n);
-
-        for (const auto& edge : edges) {
-            int u = edge.u;
-            int v = edge.v;
-            if (uf.find(u) != uf.find(v)) {
-                uf.unionSets(u, v);
-                tree.addEdge(u, v);
-            }
+        // Initialize Union-Find data structures
+        vector<int> parent(n);
+        vector<int> rank(n, 0);
+        for (int i = 0; i < n; ++i) {
+            parent[i] = i;
         }
 
-        tree.computeDepths();
-        return tree;
-    }
+        // MST result as adjacency matrix with -1 indicating no edge
+        vector<vector<int>> mst(n, vector<int>(n, -1));
 
-private:
-    struct Edge {
-        int u, v, weight;
-    };
-
-    class UnionFind {
-    public:
-        UnionFind(int size) : parent(size), rank(size, 0) {
-            for (int i = 0; i < size; ++i) {
-                parent[i] = i;
-            }
-        }
-
-        int find(int x) {
-            if (parent[x] != x) {
-                parent[x] = find(parent[x]); // Path compression
-            }
-            return parent[x];
-        }
-
-        void unionSets(int x, int y) {
-            int rootX = find(x);
-            int rootY = find(y);
-            if (rootX != rootY) {
-                // Union by rank
-                if (rank[rootX] > rank[rootY]) {
-                    parent[rootY] = rootX;
-                } else if (rank[rootX] < rank[rootY]) {
-                    parent[rootX] = rootY;
-                } else {
-                    parent[rootY] = rootX;
-                    ++rank[rootX];
+        // Kruskal's algorithm
+        int edgeCount = 0;
+        for (const auto &edge : edges) {
+            if (find(edge.u, parent) != find(edge.v, parent)) {
+                unionSets(edge.u, edge.v, parent, rank);
+                mst[edge.u][edge.v] = edge.weight;
+                mst[edge.v][edge.u] = edge.weight;
+                edgeCount++;
+                if (edgeCount == n - 1) {
+                    break;
                 }
             }
         }
+        Graph Tree;
+        Tree.New_graph(mst);
+        return Tree;
+    }
 
-    private:
-        std::vector<int> parent;
-        std::vector<int> rank;
+private:
+    // Struct to represent an edge
+    struct Edge {
+        int u, v, weight;
+        Edge(int u, int v, int weight) : u(u), v(v), weight(weight) {}
     };
+
+    // Comparator to sort edges by weight
+    static bool compareEdge(const Edge &a, const Edge &b) {
+        return a.weight < b.weight;
+    }
+
+    // Find function for Union-Find (Disjoint Set)
+    int find(int node, vector<int> &parent) {
+        if (parent[node] != node) {
+            parent[node] = find(parent[node], parent);  // Path compression
+        }
+        return parent[node];
+    }
+
+    // Union function for Union-Find (Disjoint Set)
+    void unionSets(int u, int v, vector<int> &parent, vector<int> &rank) {
+        int rootU = find(u, parent);
+        int rootV = find(v, parent);
+        if (rootU != rootV) {
+            if (rank[rootU] > rank[rootV]) {
+                parent[rootV] = rootU;
+            } else if (rank[rootU] < rank[rootV]) {
+                parent[rootU] = rootV;
+            } else {
+                parent[rootV] = rootU;
+                rank[rootU]++;
+            }
+        }
+    }
 };

@@ -109,15 +109,15 @@ void* handle_client(int client_fd) {
                 graph.Command_handle(client_fd, command);
             }
             // msp command
-            else if(command.find("msp") == 0){
+            else if(command.find("MST") == 0){
                 string msg = "Which strategy whould you like to use?\n1 - Prim's algorithm\n2 - Kruskal's algorithm";
                 write(client_fd, msg.c_str(), msg.size());
                 int strategy = read(client_fd, buffer, BUFFER_SIZE);
                 string command2(buffer, strategy);
                 
-                MSTAlgorithm* mst_algo = MSTFactory::createMSTSolver(std::stoi(command2));
-                Tree t = mst_algo->calculateMST(graph);
-                t.printTree();  // Test
+                MSTAlgorithm* mst_algo = MSTFactory::createMSTSolver(std::stoi(command2)-1);
+                Graph t = mst_algo->calculateMST(graph);
+                t.printGraph();  // Test
 
             } 
             else {
