@@ -107,10 +107,12 @@ void* handle_client(int client_fd) {
             if (command.find("Newgraph") == 0 || command.find("Newedge") == 0 || command.find("Removeedge") == 0) {
                 lock_guard<mutex> lock(mtx); // Protect access to shared resource
                 graph.Command_handle(client_fd, command);
+                cout << "The graph : \n";
+                graph.printGraph();
             }
             // msp command
             else if(command.find("MST") == 0){
-                string msg = "Which strategy whould you like to use?\n1 - Prim's algorithm\n2 - Kruskal's algorithm";
+                string msg = "Which strategy whould you like to use?\n1 - Prim's algorithm\n2 - Kruskal's algorithm\n";
                 write(client_fd, msg.c_str(), msg.size());
                 int strategy = read(client_fd, buffer, BUFFER_SIZE);
                 string command2(buffer, strategy);

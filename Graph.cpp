@@ -31,17 +31,18 @@ class Graph{
 
         bool New_graph(int v, int m){   // V - amount of vertecies, M - amount of edges
             size = v;
-            // Set all the weights to -1
-            for (auto& row : adjmatrix) {
-                fill(row.begin(), row.end(), -1);
-            }
+            adjmatrix.resize(size, vector<int>(size, -1));
 
             char buffer[BUFFER_SIZE];
             int valread;
-            string msg = "Please enter the edges: (for example- 1 2)\n";
+            string msg = "Please enter the edges: (for example- 0 1)\n";
             write(current_client_fd,msg.c_str(),msg.size());
             //cout << "Please enter the edges: (for example- 1 2)\n"; // Make it print to client!!
             for (int i = 0; i < m; ++i) {
+                if(i != 0){
+                    msg = "next edge: (for example- 1 2)\n";
+                    write(current_client_fd,msg.c_str(),msg.size());
+                }        
                 int src, dest, weight;
                 valread = read(current_client_fd, buffer, BUFFER_SIZE);
                 buffer[valread] = '\0';
@@ -52,15 +53,20 @@ class Graph{
                 {
                     return false;
                 }
-                
-                string msg = "Please enter weight you want : \n";
+                msg = "Please enter the weight you want : \n";
                 write(current_client_fd,msg.c_str(),msg.size());
+                int value;
                 valread = read(current_client_fd, buffer, BUFFER_SIZE);
-                buffer[valread] = '\0';
-                istringstream iss2(buffer);
-                iss2 >> weight;
-                adjmatrix[src][dest] = weight;
-                adjmatrix[dest][src] = weight;
+                if (valread > 0) {
+                    // Null-terminate the buffer to ensure it's a valid string
+                    buffer[valread] = '\0';
+                    // Convert the buffer to an integer
+                    value = atoi(buffer);
+                    printf("The integer value is: %d\n", value);
+                }
+
+                adjmatrix[src][dest] = value;
+                adjmatrix[dest][src] = value;
             }
             return true;
         }
