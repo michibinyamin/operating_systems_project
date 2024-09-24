@@ -21,6 +21,7 @@
 //#include "Tree.cpp"
 //#include "primAlgorithm.cpp"
 #include "Pipeline.cpp"
+#include "Functions.hpp"
 
 #define PORT 9034
 #define BUFFER_SIZE 1024
@@ -121,12 +122,12 @@ void* handle_client(int client_fd) {
                 // Using factory design pattern to return a stratigy 
                 MSTAlgorithm* mst_algo = MSTFactory::createMSTSolver(std::stoi(command2)-1);
                 //
-                // Initiate the chosen stratigy. this returns a graph object but as an mst
+                // Initiate the chosen strategy. this returns a graph object but as an mst
                 Graph tree = mst_algo->calculateMST(graph);
                 tree.printGraph();  // Test
                 //
                 // Create a pipeline
-                Pipeline p;
+                //Pipeline p;
 
             } 
             else {
