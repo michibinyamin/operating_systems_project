@@ -6,7 +6,7 @@ CXXFLAGS = -Wall -Wextra -pedantic -pthread
 TARGET = main
 
 # Source files
-SOURCES = main.cpp Graph.cpp Proactor.cpp KruskalAlgorithm.cpp PrimAlgorithm.cpp MSTFactory.cpp Functions.cpp Pipeline.cpp
+SOURCES = main.cpp Graph.cpp Proactor.cpp KruskalAlgorithm.cpp PrimAlgorithm.cpp MSTFactory.cpp Functions.cpp #Pipeline.cpp LF.cpp
 
 # Object files
 OBJECTS = $(SOURCES:.cpp=.o)

@@ -1,4 +1,3 @@
-//#pragma once
 #include <bits/stdc++.h>
 #include <iostream>
 #include <string>
@@ -53,7 +52,7 @@ class Graph{
                 {
                     return false;
                 }
-                msg = "Please enter the weight you want : \n";
+                msg = "Please enter the weight you want: ";
                 write(current_client_fd,msg.c_str(),msg.size());
                 int value;
                 valread = read(current_client_fd, buffer, BUFFER_SIZE);
@@ -114,16 +113,27 @@ class Graph{
                 }
 
             }else if(command.find("Newedge") == 0){
+                char buffer[BUFFER_SIZE];
                 string numbers_part = command.substr(8);
                 istringstream iss(numbers_part);
                 char comma;
                 // Read the numbers separated by comma
                 iss >> v >> comma >> m;
-                //size++;
+                string success_msg2 = "Please enter the weight you want: ";
+                write(current_client_fd, success_msg2.c_str(), success_msg2.size());
+                int value;
+                int valread = read(current_client_fd, buffer, BUFFER_SIZE);
+                if (valread > 0) {
+                    // Null-terminate the buffer to ensure it's a valid string
+                    buffer[valread] = '\0';
+                    // Convert the buffer to an integer
+                    value = atoi(buffer);
+                    printf("The integer value is: %d\n", value);
+                }
 
-                // Ask again for weight and add to matrics(in both sides)
+                adjmatrix[v][m] = value;
+                adjmatrix[m][v] = value;
 
-                adjmatrix.push_back({v, m});
                 string success_msg = "Edge (" + to_string(v) + " -> " + to_string(m) + ") added.\n";
                 write(current_client_fd, success_msg.c_str(), success_msg.size());
                 //cout << "Edge (" << v << " -> " << m << ") added.\n";   // Make it print to client!!                      

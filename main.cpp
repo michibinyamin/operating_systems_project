@@ -21,7 +21,8 @@
 //#include "Tree.cpp"
 //#include "primAlgorithm.cpp"
 #include "Pipeline.cpp"
-#include "Functions.hpp"
+#include "LF.cpp"
+//#include "Functions.hpp"
 
 #define PORT 9034
 #define BUFFER_SIZE 1024
@@ -111,6 +112,7 @@ void* handle_client(int client_fd) {
                 graph.Command_handle(client_fd, command);
                 cout << "The graph : \n";
                 graph.printGraph();
+                cout << "\n";
             }
             // msp command
             else if(command.find("MST") == 0){
@@ -124,18 +126,31 @@ void* handle_client(int client_fd) {
                 //
                 // Initiate the chosen strategy. this returns a graph object but as an mst
                 Graph tree = mst_algo->calculateMST(graph);
+                cout << "The MST : \n";
                 tree.printGraph();  // Test
-                //
-                // Create a pipeline
-                Pipeline pipeline;
-                // Add stages
-                pipeline.addStage(Total_weight);
-                pipeline.addStage(Longest_distance);
-                pipeline.addStage(Average_distance);
-                pipeline.addStage(Shortest_distance);
-                // Execute command
-                pipeline.execute(tree, client_fd);
 
+                // Choose if to implement with pipeline or LF
+                if(true){
+                    //
+                    // Create a pipeline
+                    Pipeline pipeline;
+                    // Add stages
+                    pipeline.addStage(Total_weight);
+                    pipeline.addStage(Longest_distance);
+                    pipeline.addStage(Average_distance);
+                    pipeline.addStage(Shortest_distance);
+                    // Execute command
+                    pipeline.execute(tree, client_fd);
+                }
+                else{
+                    /*
+                    It is possible to add several trees and make the LF work concurently
+                    with 3 threads, here we are only sending one task
+                    */
+                    LeaderFollower lf(3); // Create Leader with a ThreadPool of 3 threads
+                    lf.addTask(tree,client_fd);  // Add task
+                    this_thread::sleep_for(std::chrono::seconds(1));    // Give some time for processing
+                }
 
             } 
             else {

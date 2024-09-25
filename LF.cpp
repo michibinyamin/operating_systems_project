@@ -5,23 +5,24 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
-
+#include "MSTAlgorithm.hpp"
 class ThreadPool {
 public:
     ThreadPool(size_t numThreads);
     ~ThreadPool();
 
-    void enqueue(int task);
+    void enqueue(Graph g, int client_fd);
 
 private:
     std::vector<std::thread> workers;
-    std::queue<int> tasks;
+    std::queue<std::pair<Graph, int>> tasks;
     std::mutex mtx;
     std::condition_variable cv;
     std::atomic<bool> stop;
 
     void workerFunction();
 };
+
 
 ThreadPool::ThreadPool(size_t numThreads) : stop(false) {
     for (size_t i = 0; i < numThreads; ++i) {
@@ -37,18 +38,17 @@ ThreadPool::~ThreadPool() {
     }
 }
 
-void ThreadPool::enqueue(int task) {
+void ThreadPool::enqueue(Graph g, int client_fd) {
     {
         std::lock_guard<std::mutex> lock(mtx);
-        tasks.push(task);
+        tasks.emplace(g,client_fd);
     }
     cv.notify_one();
 }
 
 void ThreadPool::workerFunction() {
     while (!stop) {
-        int task;
-
+        std::pair<Graph, int> task;
         {
             std::unique_lock<std::mutex> lock(mtx);
             cv.wait(lock, [this] { return !tasks.empty() || stop; });
@@ -60,7 +60,10 @@ void ThreadPool::workerFunction() {
         }
 
         // Process the task
-        std::cout << "Processing task: " << task << std::endl;
+        Total_weight(task.first, task.second);
+        Longest_distance(task.first, task.second);
+        Average_distance(task.first, task.second);
+        Shortest_distance(task.first, task.second);
     }
 }
 
@@ -68,24 +71,10 @@ class LeaderFollower {
 public:
     LeaderFollower(int numThreads) : threadPool(numThreads) {}
 
-    void addTask(int task) {
-        std::cout << "Leader adds task: " << task << std::endl;
-        threadPool.enqueue(task);
+    void addTask(Graph g, int client_fd) {
+        threadPool.enqueue(g,client_fd);
     }
 
 private:
     ThreadPool threadPool;
 };
-
-int main() {
-    LeaderFollower lf(3); // Create Leader with a ThreadPool of 3 threads
-
-    // Adding tasks
-    for (int i = 1; i <= 5; ++i) {
-        lf.addTask(i);
-    }
-
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // Give some time for processing
-
-    return 0;
-}
