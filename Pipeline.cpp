@@ -4,10 +4,11 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include "Graph.cpp"
 
 class ActiveObject {
 public:
-    using Task = std::function<void(int)>;
+    using Task = std::function<void(Graph Tree, int client_fd)>;
 
     ActiveObject(Task task) : task_(task), stop_(false) {
         thread_ = std::thread(&ActiveObject::run, this);
@@ -22,16 +23,16 @@ public:
         thread_.join();
     }
 
-    void send(int data) {
+    void send(Graph tree, int client_fd) {
         std::unique_lock<std::mutex> lock(mutex_);
-        queue_.push(data);
+        queue_.emplace(tree, client_fd);
         cv_.notify_one();
     }
 
 private:
     void run() {
         while (true) {
-            int data;
+            std::pair<Graph, int> data;
             {
                 std::unique_lock<std::mutex> lock(mutex_);
                 cv_.wait(lock, [this]() { return stop_ || !queue_.empty(); });
@@ -39,13 +40,13 @@ private:
                 data = queue_.front();
                 queue_.pop();
             }
-            task_(data);
+            task_(data.first, data.second);
         }
     }
 
     Task task_;
     std::thread thread_;
-    std::queue<int> queue_;
+    std::queue<std::pair<Graph, int>> queue_;  // The function arguments
     std::mutex mutex_;
     std::condition_variable cv_;
     bool stop_;
@@ -57,13 +58,14 @@ public:
         stages_.emplace_back(task);
     }
 
-    void execute(int data) {
+    void execute(Graph tree, int client_fd) {
         for (size_t i = 0; i < stages_.size(); ++i) {
-            if (i == 0) {
-                stages_[i].send(data);
-            } else {
-                stages_[i - 1].send(data);
-            }
+            stages_[i].send(tree, client_fd);
+            // if (i == 0) {
+            //     stages_[i].send(tree, client_fd);
+            // } else {
+            //     stages_[i - 1].send(tree, client_fd);
+            // }
         }
     }
 

@@ -127,7 +127,15 @@ void* handle_client(int client_fd) {
                 tree.printGraph();  // Test
                 //
                 // Create a pipeline
-                //Pipeline p;
+                Pipeline pipeline;
+                // Add stages
+                pipeline.addStage(Total_weight);
+                pipeline.addStage(Longest_distance);
+                pipeline.addStage(Average_distance);
+                pipeline.addStage(Shortest_distance);
+                // Execute command
+                pipeline.execute(graph, client_fd);
+
 
             } 
             else {
