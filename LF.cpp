@@ -1,56 +1,91 @@
-#include <vector>
+#include <iostream>
 #include <thread>
+#include <vector>
+#include <queue>
 #include <mutex>
 #include <condition_variable>
-#include <queue>
-#include <functional>
+#include <atomic>
 
 class ThreadPool {
 public:
-    ThreadPool(size_t numThreads) : stop(false) {
-        for (size_t i = 0; i < numThreads; ++i) {
-            workers.emplace_back([this] {
-                while (true) {
-                    std::function<void()> task;
-                    {
-                        std::unique_lock<std::mutex> lock(this->queueMutex);
-                        this->condition.wait(lock, [this] { return this->stop || !this->tasks.empty(); });
-                        if (this->stop && this->tasks.empty()) return;
-                        task = std::move(this->tasks.front());
-                        this->tasks.pop();
-                    }
-                    task();
-                }
-            });
-        }
-    }
+    ThreadPool(size_t numThreads);
+    ~ThreadPool();
 
-    ~ThreadPool() {
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            stop = true;
-        }
-        condition.notify_all();
-        for (std::thread &worker : workers) {
-            worker.join();
-        }
-    }
-
-    template<class F, class... Args>
-    void enqueue(F&& f, Args&&... args) {
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            if (stop) throw std::runtime_error("enqueue on stopped ThreadPool");
-            tasks.emplace(std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-        }
-        condition.notify_one();
-    }
+    void enqueue(int task);
 
 private:
     std::vector<std::thread> workers;
-    std::queue<std::function<void()>> tasks;
+    std::queue<int> tasks;
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::atomic<bool> stop;
 
-    std::mutex queueMutex;
-    std::condition_variable condition;
-    bool stop;
+    void workerFunction();
 };
+
+ThreadPool::ThreadPool(size_t numThreads) : stop(false) {
+    for (size_t i = 0; i < numThreads; ++i) {
+        workers.emplace_back(&ThreadPool::workerFunction, this);
+    }
+}
+
+ThreadPool::~ThreadPool() {
+    stop = true;
+    cv.notify_all();
+    for (auto& worker : workers) {
+        worker.join();
+    }
+}
+
+void ThreadPool::enqueue(int task) {
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        tasks.push(task);
+    }
+    cv.notify_one();
+}
+
+void ThreadPool::workerFunction() {
+    while (!stop) {
+        int task;
+
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            cv.wait(lock, [this] { return !tasks.empty() || stop; });
+
+            if (stop) return;
+
+            task = tasks.front();
+            tasks.pop();
+        }
+
+        // Process the task
+        std::cout << "Processing task: " << task << std::endl;
+    }
+}
+
+class LeaderFollower {
+public:
+    LeaderFollower(int numThreads) : threadPool(numThreads) {}
+
+    void addTask(int task) {
+        std::cout << "Leader adds task: " << task << std::endl;
+        threadPool.enqueue(task);
+    }
+
+private:
+    ThreadPool threadPool;
+};
+
+int main() {
+    LeaderFollower lf(3); // Create Leader with a ThreadPool of 3 threads
+
+    // Adding tasks
+    for (int i = 1; i <= 5; ++i) {
+        lf.addTask(i);
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // Give some time for processing
+
+    return 0;
+}
