@@ -134,7 +134,7 @@ void* handle_client(int client_fd) {
                 pipeline.addStage(Average_distance);
                 pipeline.addStage(Shortest_distance);
                 // Execute command
-                pipeline.execute(graph, client_fd);
+                pipeline.execute(tree, client_fd);
 
 
             } 

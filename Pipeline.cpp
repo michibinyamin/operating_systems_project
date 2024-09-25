@@ -4,7 +4,10 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
-#include "Graph.cpp"
+//#include "Graph.cpp"
+#include "MSTAlgorithm.hpp"
+
+//class Graph;
 
 class ActiveObject {
 public:
@@ -55,22 +58,18 @@ private:
 class Pipeline {
 public:
     void addStage(ActiveObject::Task task) {
-        stages_.emplace_back(task);
+        stages_.emplace_back(std::make_shared<ActiveObject>(task));
     }
 
     void execute(Graph tree, int client_fd) {
         for (size_t i = 0; i < stages_.size(); ++i) {
-            stages_[i].send(tree, client_fd);
-            // if (i == 0) {
-            //     stages_[i].send(tree, client_fd);
-            // } else {
-            //     stages_[i - 1].send(tree, client_fd);
-            // }
+            stages_[i]->send(tree, client_fd);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));   // To ensure they are sent in order
         }
     }
 
 private:
-    std::vector<ActiveObject> stages_;
+    std::vector<std::shared_ptr<ActiveObject>> stages_;
 };
 
 // void stage1(int data) {

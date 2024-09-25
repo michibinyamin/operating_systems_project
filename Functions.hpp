@@ -1,5 +1,6 @@
-
-#include "Graph.cpp"
+#pragma once
+//#include "Graph.cpp"
+#include "MSTAlgorithm.hpp"
 
 // Total weight of the MST
 void Total_weight(Graph Tree, int client_fd);

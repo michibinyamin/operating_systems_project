@@ -5,13 +5,13 @@ void Total_weight(Graph Tree, int client_fd){
     int sum = 0;
     for (size_t i = 0; i < Tree.getAdjacencyMatrix().size(); i++)
     {
-        for (size_t j = 0; j < Tree.getAdjacencyMatrix().size(); j++)
+        for (size_t j = i; j < Tree.getAdjacencyMatrix().size(); j++)
         {
             if(Tree.getAdjacencyMatrix()[i][j] != -1)
                 sum = sum + Tree.getAdjacencyMatrix()[i][j];
         }
     }
-    string msg = "The Total weight of the MST is: "+ sum;
+    string msg = "The Total weight of the MST is: " + to_string(sum) + "\n";
     write(client_fd, msg.c_str(), msg.size());
 }
 
@@ -20,7 +20,7 @@ void DFS(const vector<vector<int>>& adjMatrix, int node, vector<bool>& visited, 
     visited[node] = true;
 
     for (int neighbor = 0; neighbor < adjMatrix.size(); neighbor++) {
-        if (adjMatrix[node][neighbor] != 0 && !visited[neighbor]) { // Check for an edge and unvisited node
+        if (adjMatrix[node][neighbor] != -1 && !visited[neighbor]) { // Check for an edge and unvisited node
             DFS(adjMatrix, neighbor, visited, currentDistance + adjMatrix[node][neighbor], maxDistance);
         }
     }
@@ -40,7 +40,7 @@ void Longest_distance(Graph Tree, int client_fd) {
     for (int i = 0; i < Tree.getAdjacencyMatrix().size(); i++) {
         DFS(Tree.getAdjacencyMatrix(), i, visited, 0, maxDistance);
     }
-    string msg = "Longest distance between two vertices is " + maxDistance;
+    string msg = "Longest distance between two vertices is: " + to_string(maxDistance) + "\n";
     write(client_fd, msg.c_str(), msg.size());
 }
 
@@ -58,7 +58,7 @@ void BFS(const vector<vector<int>>& adjMatrix, int start, vector<int>& distances
         queue.erase(queue.begin());
 
         for (int neighbor = 0; neighbor < adjMatrix.size(); neighbor++) {
-            if (adjMatrix[node][neighbor] != 0 && !visited[neighbor]) { // Check for an edge
+            if (adjMatrix[node][neighbor] != -1 && !visited[neighbor]) { // Check for an edge
                 visited[neighbor] = true;
                 distances[neighbor] = distances[node] + adjMatrix[node][neighbor];
                 queue.push_back(neighbor);
@@ -85,7 +85,7 @@ void Average_distance(Graph Tree, int client_fd) {
 
     // Calculate the average distance
     double average = count > 0 ? totalDistance / count : 0.0;
-    string msg = "The average distance between vertecies in the graph is " + to_string(average);
+    string msg = "The average distance between vertecies in the graph is: " + to_string(average) + "\n";
     write(client_fd, msg.c_str(), msg.size());
 }
 
@@ -103,6 +103,6 @@ void Shortest_distance(Graph Tree, int client_fd){
             }
         }
     }
-    string msg = "The shortest distance between two vertices is: "+ minimul;
+    string msg = "The shortest distance between two vertices is: "+ to_string(minimul) + "\n";
     write(client_fd, msg.c_str(), msg.size());
 }
