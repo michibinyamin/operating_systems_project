@@ -70,32 +70,3 @@ public:
 private:
     std::vector<std::shared_ptr<ActiveObject>> stages_;
 };
-
-// void stage1(int data) {
-//     std::cout << "Stage 1: Processing " << data << "\n";
-//     data += 1; // Modify data
-//     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-// }
-
-// void stage2(int data) {
-//     std::cout << "Stage 2: Processing " << data << "\n";
-//     data *= 2; // Modify data
-//     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-// }
-
-// int main() {
-//     Pipeline pipeline;
-
-//     ActiveObject stage1Obj(stage1);
-//     ActiveObject stage2Obj(stage2);
-
-//     pipeline.addStage(stage1Obj);
-//     pipeline.addStage(stage2Obj);
-
-//     pipeline.execute(5); // Start the pipeline with initial data
-
-//     // Wait for a while to allow processing to complete
-//     std::this_thread::sleep_for(std::chrono::seconds(1));
-    
-//     return 0;
-// }

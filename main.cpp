@@ -14,6 +14,7 @@
 #include <csignal>
 #include <thread>
 #include <mutex>
+
 //#include "Graph.cpp"
 #include "Proactor.h"
 //#include "MSTAlgorithm.hpp"
@@ -69,6 +70,7 @@ public:
             perror("listen failed");
             exit(EXIT_FAILURE);
         }
+        lock_guard<mutex> lock(mtx);
         cout << "Socket created.\n";
     }
 
@@ -98,6 +100,7 @@ void* handle_client(int client_fd) {
         int valread = read(client_fd, buffer, BUFFER_SIZE);
         if (valread <= 0) {
             if (valread == 0) {
+                lock_guard<mutex> lock(mtx);
                 cout << "Client disconnected: fd " << client_fd << endl;
             } else {
                 perror("read error");
@@ -125,6 +128,7 @@ void* handle_client(int client_fd) {
                 MSTAlgorithm* mst_algo = MSTFactory::createMSTSolver(std::stoi(command2)-1);
                 //
                 // Initiate the chosen strategy. this returns a graph object but as an mst
+                lock_guard<mutex> lock(mtx); // Protect access to shared resource
                 Graph tree = mst_algo->calculateMST(graph);
                 cout << "The MST : \n";
                 tree.printGraph();  // Test
@@ -151,7 +155,7 @@ void* handle_client(int client_fd) {
                     lf.addTask(tree,client_fd);  // Add task
                     this_thread::sleep_for(std::chrono::seconds(1));    // Give some time for processing
                 }
-
+                delete mst_algo;
             } 
             else {
                 string response = "Invalid command.\n";
@@ -161,13 +165,14 @@ void* handle_client(int client_fd) {
     }
 }
 
-
 void sigint_handler(int sig) {
-    cout << "\nCaught SIGINT, closing socket...\n";
-    close(server_fd); // Close the socket
+    {
+        lock_guard<mutex> lock(mtx);
+        cout << "\nCaught SIGINT, closing socket...\n";
+        close(server_fd); // Close the socket
+    }
     exit(0); // Exit the program
 }
-
 
 int main() {
     signal(SIGINT, sigint_handler);
@@ -179,7 +184,10 @@ int main() {
         if (client_fd >= 0) {   // New client
             string options_msg = "Options : Newgraph n,m   Newedge i,j    Removeedge i,j    MST\n";
             write(client_fd, options_msg.c_str(), options_msg.size());
-            cout << "New client connected\n";
+            {
+                lock_guard<mutex> lock(mtx);
+                cout << "New client connected\n";
+            }
             
             // Start a proactor thread for each client
             pthread_t tid = startProactor(client_fd, handle_client);

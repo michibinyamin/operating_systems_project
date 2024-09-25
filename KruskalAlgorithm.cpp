@@ -9,6 +9,7 @@ using namespace std;
 class KruskalAlgorithm : public MSTAlgorithm {
 public:
     KruskalAlgorithm() {}
+    //~MSTAlgorithm() {}
 
     Graph calculateMST(const Graph &g) {
         vector<vector<int>> graph = g.getAdjacencyMatrix();

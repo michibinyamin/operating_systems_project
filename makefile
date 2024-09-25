@@ -1,6 +1,7 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -Wall -Wextra -pedantic -pthread
+CXXFLAGS = -Wall -Wextra -pedantic -pthread -fprofile-arcs -ftest-coverage
+LDFLAGS = -lgcov
 
 # Executable name
 TARGET = main
@@ -16,15 +17,20 @@ all: $(TARGET)
 
 # Link the target
 $(TARGET): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Compile source files into object files
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Clean up build files
+# Run gcov to generate coverage
+coverage: $(TARGET)
+	./$(TARGET)
+	gcov main.cpp
+
+# Clean up build files and coverage files
 clean:
-	rm -f $(TARGET) $(OBJECTS)
+	rm -f $(TARGET) $(OBJECTS) *.gcda *.gcno *.gcov
 
 # Phony targets
-.PHONY: all clean
+.PHONY: all clean coverage
