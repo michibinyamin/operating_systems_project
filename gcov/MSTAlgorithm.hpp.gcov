@@ -1,0 +1,23 @@
+        -:    0:Source:MSTAlgorithm.hpp
+        -:    0:Graph:main.gcno
+        -:    0:Data:main.gcda
+        -:    0:Runs:4
+        -:    1:#pragma once
+        -:    2:#include "Graph.cpp"
+        -:    3:#include "Functions.hpp"
+        -:    4://Interface (Strategy)- implements by Prim and Kruskal
+        -:    5:
+        -:    6:class MSTAlgorithm {
+        -:    7:public:
+       2*:    8:    virtual ~MSTAlgorithm() = default;
+------------------
+_ZN12MSTAlgorithmD0Ev:
+    #####:    8:    virtual ~MSTAlgorithm() = default;
+------------------
+_ZN12MSTAlgorithmD2Ev:
+        2:    8:    virtual ~MSTAlgorithm() = default;
+------------------
+        -:    9:
+        -:   10:    //calculate MST
+        -:   11:    virtual Graph calculateMST(const Graph& graph) = 0;
+        -:   12:};

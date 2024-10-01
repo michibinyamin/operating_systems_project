@@ -1,0 +1,76 @@
+        -:    0:Source:Pipeline.cpp
+        -:    0:Graph:main.gcno
+        -:    0:Data:main.gcda
+        -:    0:Runs:4
+        -:    1:#include <iostream>
+        -:    2:#include <queue>
+        -:    3:#include <thread>
+        -:    4:#include <mutex>
+        -:    5:#include <condition_variable>
+        -:    6:#include <functional>
+        -:    7:#include "MSTAlgorithm.hpp"
+        -:    8:
+        -:    9://class Graph;
+        -:   10:
+        -:   11:class ActiveObject {
+        -:   12:public:
+        -:   13:    using Task = std::function<void(Graph Tree, int client_fd)>;
+        -:   14:
+        8:   15:    ActiveObject(Task task) : task_(task), stop_(false) {
+        8:   16:        thread_ = std::thread(&ActiveObject::run, this);
+        8:   17:    }
+        -:   18:
+        8:   19:    ~ActiveObject() {
+        -:   20:        {
+        8:   21:            std::unique_lock<std::mutex> lock(mutex_);
+        8:   22:            stop_ = true;
+        8:   23:        }
+        8:   24:        cv_.notify_all();
+        8:   25:        thread_.join();
+        8:   26:    }
+        -:   27:
+        8:   28:    void send(Graph tree, int client_fd) {
+        8:   29:        std::unique_lock<std::mutex> lock(mutex_);
+        8:   30:        queue_.emplace(tree, client_fd);
+        8:   31:        cv_.notify_one();
+        8:   32:    }
+        -:   33:
+        -:   34:private:
+       16:   35:    void run() {
+        -:   36:        while (true) {
+       16:   37:            std::pair<Graph, int> data;
+        -:   38:            {
+       16:   39:                std::unique_lock<std::mutex> lock(mutex_);
+       48:   40:                cv_.wait(lock, [this]() { return stop_ || !queue_.empty(); });
+       24:   41:                if (stop_ && queue_.empty()) return;
+        8:   42:                data = queue_.front();
+        8:   43:                queue_.pop();
+       16:   44:            }
+        8:   45:            task_(data.first, data.second);
+       24:   46:        }
+        -:   47:    }
+        -:   48:
+        -:   49:    Task task_;
+        -:   50:    std::thread thread_;
+        -:   51:    std::queue<std::pair<Graph, int>> queue_;  // The function arguments
+        -:   52:    std::mutex mutex_;
+        -:   53:    std::condition_variable cv_;
+        -:   54:    bool stop_;
+        -:   55:};
+        -:   56:
+        -:   57:class Pipeline {
+        -:   58:public:
+        8:   59:    void addStage(ActiveObject::Task task) {
+        8:   60:        stages_.emplace_back(std::make_shared<ActiveObject>(task));
+        8:   61:    }
+        -:   62:
+        2:   63:    void execute(Graph tree, int client_fd) {
+       10:   64:        for (size_t i = 0; i < stages_.size(); ++i) {
+        8:   65:            stages_[i]->send(tree, client_fd);
+        8:   66:            std::this_thread::sleep_for(std::chrono::milliseconds(10));   // To ensure they are sent in order
+        -:   67:        }
+        2:   68:    }
+        -:   69:
+        -:   70:private:
+        -:   71:    std::vector<std::shared_ptr<ActiveObject>> stages_;
+        -:   72:};

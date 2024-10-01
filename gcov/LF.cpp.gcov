@@ -1,0 +1,84 @@
+        -:    0:Source:LF.cpp
+        -:    0:Graph:main.gcno
+        -:    0:Data:main.gcda
+        -:    0:Runs:4
+        -:    1:#include <iostream>
+        -:    2:#include <thread>
+        -:    3:#include <vector>
+        -:    4:#include <queue>
+        -:    5:#include <mutex>
+        -:    6:#include <condition_variable>
+        -:    7:#include <atomic>
+        -:    8:#include "MSTAlgorithm.hpp"
+        -:    9:class ThreadPool {
+        -:   10:public:
+        -:   11:    ThreadPool(size_t numThreads);
+        -:   12:    ~ThreadPool();
+        -:   13:
+        -:   14:    void enqueue(Graph g, int client_fd);
+        -:   15:
+        -:   16:private:
+        -:   17:    std::vector<std::thread> workers;
+        -:   18:    std::queue<std::pair<Graph, int>> tasks;
+        -:   19:    std::mutex mtx;
+        -:   20:    std::condition_variable cv;
+        -:   21:    std::atomic<bool> stop;
+        -:   22:
+        -:   23:    void workerFunction();
+        -:   24:};
+        -:   25:
+        -:   26:
+    #####:   27:ThreadPool::ThreadPool(size_t numThreads) : stop(false) {
+    #####:   28:    for (size_t i = 0; i < numThreads; ++i) {
+    #####:   29:        workers.emplace_back(&ThreadPool::workerFunction, this);
+        -:   30:    }
+    #####:   31:}
+        -:   32:
+    #####:   33:ThreadPool::~ThreadPool() {
+    #####:   34:    stop = true;
+    #####:   35:    cv.notify_all();
+    #####:   36:    for (auto& worker : workers) {
+    #####:   37:        worker.join();
+        -:   38:    }
+    #####:   39:}
+        -:   40:
+    #####:   41:void ThreadPool::enqueue(Graph g, int client_fd) {
+        -:   42:    {
+    #####:   43:        std::lock_guard<std::mutex> lock(mtx);
+    #####:   44:        tasks.emplace(g,client_fd);
+    #####:   45:    }
+    #####:   46:    cv.notify_one();
+    #####:   47:}
+        -:   48:
+    #####:   49:void ThreadPool::workerFunction() {
+    #####:   50:    while (!stop) {
+    #####:   51:        std::pair<Graph, int> task;
+        -:   52:        {
+    #####:   53:            std::unique_lock<std::mutex> lock(mtx);
+    #####:   54:            cv.wait(lock, [this] { return !tasks.empty() || stop; });
+        -:   55:
+    #####:   56:            if (stop) return;
+        -:   57:
+    #####:   58:            task = tasks.front();
+    #####:   59:            tasks.pop();
+    #####:   60:        }
+        -:   61:
+        -:   62:        // Process the task
+    #####:   63:        Total_weight(task.first, task.second);
+    #####:   64:        Longest_distance(task.first, task.second);
+    #####:   65:        Average_distance(task.first, task.second);
+    #####:   66:        Shortest_distance(task.first, task.second);
+    #####:   67:    }
+        -:   68:}
+        -:   69:
+        -:   70:class LeaderFollower {
+        -:   71:public:
+        -:   72:    LeaderFollower(int numThreads) : threadPool(numThreads) {}
+        -:   73:
+        -:   74:    void addTask(Graph g, int client_fd) {
+        -:   75:        threadPool.enqueue(g,client_fd);
+        -:   76:    }
+        -:   77:
+        -:   78:private:
+        -:   79:    ThreadPool threadPool;
+        -:   80:};

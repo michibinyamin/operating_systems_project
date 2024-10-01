@@ -1,0 +1,36 @@
+        -:    0:Source:MSTFactory.cpp
+        -:    0:Graph:main.gcno
+        -:    0:Data:main.gcda
+        -:    0:Runs:4
+        -:    1:#include "PrimAlgorithm.cpp"
+        -:    2:#include "KruskalAlgorithm.cpp"
+        -:    3://#include "MSTAlgorithm.hpp"
+        -:    4:
+        -:    5:class MSTFactory {
+        -:    6:public:
+        -:    7:    enum MSTAlgo {
+        -:    8:        PRIM,
+        -:    9:        KRUSKAL
+        -:   10:    };
+        -:   11:
+        2:   12:    static MSTAlgorithm* createMSTSolver(int type) {
+        2:   13:        MSTAlgorithm* solver = NULL;
+        -:   14:
+        2:   15:        switch (type) {
+        1:   16:            case PRIM:
+        1:   17:                solver = new PrimAlgorithm();
+        1:   18:                break;
+        1:   19:            case KRUSKAL:
+        1:   20:                solver = new KruskalAlgorithm();
+        1:   21:                break;
+    #####:   22:            default:
+    #####:   23:                std::cerr << "Invalid algorithm type!" << std::endl;
+    #####:   24:                return solver;
+        -:   25:        }
+        -:   26:
+        -:   27:        // Calculate MST using the selected algorithm
+        -:   28:        //solver->calculateMST(graph);
+        2:   29:        return solver;
+        -:   30:        //delete solver;
+        -:   31:    }
+        -:   32:};

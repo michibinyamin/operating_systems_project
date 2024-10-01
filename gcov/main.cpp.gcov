@@ -1,0 +1,206 @@
+        -:    0:Source:main.cpp
+        -:    0:Graph:main.gcno
+        -:    0:Data:main.gcda
+        -:    0:Runs:4
+        -:    1:#include <iostream>
+        -:    2:#include <sstream>
+        -:    3:#include <vector>
+        -:    4:#include <unordered_map>
+        -:    5:#include <string>
+        -:    6:#include <cstring>
+        -:    7:#include <unistd.h>
+        -:    8:#include <sys/types.h>
+        -:    9:#include <sys/socket.h>
+        -:   10:#include <netdb.h>
+        -:   11:#include <arpa/inet.h>
+        -:   12:#include <netinet/in.h>
+        -:   13:#include <signal.h>
+        -:   14:#include <csignal>
+        -:   15:#include <thread>
+        -:   16:#include <mutex>
+        -:   17:
+        -:   18://#include "Graph.cpp"
+        -:   19:#include "Proactor.h"
+        -:   20://#include "MSTAlgorithm.hpp"
+        -:   21:#include "MSTFactory.cpp"
+        -:   22://#include "Tree.cpp"
+        -:   23://#include "primAlgorithm.cpp"
+        -:   24:#include "Pipeline.cpp"
+        -:   25:#include "LF.cpp"
+        -:   26://#include "Functions.hpp"
+        -:   27:
+        -:   28:#define PORT 9034
+        -:   29:#define BUFFER_SIZE 1024
+        -:   30:#define MAX_CLIENTS 4
+        -:   31:
+        -:   32:
+        -:   33:using namespace std;
+        -:   34:
+        -:   35:
+        -:   36:Graph graph;
+        -:   37:int server_fd;
+        -:   38:mutex mtx;
+        -:   39:
+        -:   40:pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+        -:   41:pthread_mutex_t pmutex = PTHREAD_MUTEX_INITIALIZER;
+        -:   42:
+        -:   43:
+        -:   44:class GraphServer {
+        -:   45:private:
+        -:   46:    //int server_fd;
+        -:   47:    unordered_map<string, vector<vector<int>>> graphs;
+        -:   48:
+        -:   49:public:
+        4:   50:    GraphServer(int port) {
+        4:   51:        server_fd = socket(AF_INET, SOCK_STREAM, 0);
+        4:   52:        if (server_fd == -1) {
+    #####:   53:            perror("socket creation failed");
+    #####:   54:            exit(EXIT_FAILURE);
+        -:   55:        }
+        -:   56:
+        -:   57:        struct sockaddr_in servaddr;
+        4:   58:        bzero(&servaddr, sizeof(servaddr));
+        -:   59:
+        4:   60:        servaddr.sin_family = AF_INET;
+        4:   61:        servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+        4:   62:        servaddr.sin_port = htons(port);
+        -:   63:
+        4:   64:        if ((bind(server_fd, (struct sockaddr*)&servaddr, sizeof(servaddr))) != 0) {
+    #####:   65:            perror("socket bind failed");
+    #####:   66:            exit(EXIT_FAILURE);
+        -:   67:        }
+        -:   68:
+        4:   69:        if ((listen(server_fd, 5)) != 0) {
+    #####:   70:            perror("listen failed");
+    #####:   71:            exit(EXIT_FAILURE);
+        -:   72:        }
+        4:   73:        lock_guard<mutex> lock(mtx);
+        4:   74:        cout << "Socket created.\n";
+        4:   75:    }
+        -:   76:
+        7:   77:    int new_client() {
+        -:   78:        sockaddr_in client_addr;
+        7:   79:        socklen_t client_addr_len = sizeof(client_addr);
+        7:   80:        int new_socket = accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
+        3:   81:        if (new_socket < 0) {
+    #####:   82:            perror("accept error");
+    #####:   83:            exit(EXIT_FAILURE);
+        -:   84:        }
+        3:   85:        return new_socket;
+        -:   86:    }
+        -:   87:
+        -:   88:    int get_server_fd(){
+        -:   89:        return server_fd;
+        -:   90:    }
+        -:   91:
+        -:   92:private:
+        -:   93:
+        -:   94:};
+        -:   95:
+        -:   96:// Each client runs this method independantly (threads)
+       10:   97:void* handle_client(int client_fd) {
+        -:   98:    char buffer[1024];
+        -:   99:    while (true) {
+       10:  100:        int valread = read(client_fd, buffer, BUFFER_SIZE);
+       10:  101:        if (valread <= 0) {
+        3:  102:            if (valread == 0) {
+        3:  103:                lock_guard<mutex> lock(mtx);
+        3:  104:                cout << "Client disconnected: fd " << client_fd << endl;
+        3:  105:            } else {
+    #####:  106:                perror("read error");
+        -:  107:            }
+        3:  108:            close(client_fd);
+        3:  109:            return 0; // Exit the function to terminate the thread
+        -:  110:        } else {
+        7:  111:            string command(buffer, valread);
+        -:  112:            // Commands that are related to the original graph
+        7:  113:            if (command.find("Newgraph") == 0 || command.find("Newedge") == 0 || command.find("Removeedge") == 0) {
+        4:  114:                lock_guard<mutex> lock(mtx); // Protect access to shared resource
+        4:  115:                graph.Command_handle(client_fd, command);
+        4:  116:                cout << "The graph : \n";
+        4:  117:                graph.printGraph();
+        4:  118:                cout << "\n";
+        4:  119:            }
+        -:  120:            // msp command
+        3:  121:            else if(command.find("MST") == 0){
+        2:  122:                string msg = "Which strategy whould you like to use?\n1 - Prim's algorithm\n2 - Kruskal's algorithm\n";
+        2:  123:                write(client_fd, msg.c_str(), msg.size());
+        2:  124:                int strategy = read(client_fd, buffer, BUFFER_SIZE);
+        2:  125:                string command2(buffer, strategy);
+        -:  126:                //
+        -:  127:                // Using factory design pattern to return a stratigy 
+        2:  128:                MSTAlgorithm* mst_algo = MSTFactory::createMSTSolver(std::stoi(command2)-1);
+        -:  129:                //
+        -:  130:                // Initiate the chosen strategy. this returns a graph object but as an mst
+        2:  131:                lock_guard<mutex> lock(mtx); // Protect access to shared resource
+        2:  132:                Graph tree = mst_algo->calculateMST(graph);
+        2:  133:                cout << "The MST : \n";
+        2:  134:                tree.printGraph();  // Test
+        -:  135:
+        -:  136:                // Choose if to implement with pipeline or LF
+        -:  137:                if(true){
+        -:  138:                    //
+        -:  139:                    // Create a pipeline
+        2:  140:                    Pipeline pipeline;
+        -:  141:                    // Add stages
+        2:  142:                    pipeline.addStage(Total_weight);
+        2:  143:                    pipeline.addStage(Longest_distance);
+        2:  144:                    pipeline.addStage(Average_distance);
+        2:  145:                    pipeline.addStage(Shortest_distance);
+        -:  146:                    // Execute command
+        2:  147:                    pipeline.execute(tree, client_fd);
+        2:  148:                }
+        -:  149:                else{
+        -:  150:                    /*
+        -:  151:                    It is possible to add several trees and make the LF work concurently
+        -:  152:                    with 3 threads, here we are only sending one task
+        -:  153:                    */
+        -:  154:                    LeaderFollower lf(3); // Create Leader with a ThreadPool of 3 threads
+        -:  155:                    lf.addTask(tree,client_fd);  // Add task
+        -:  156:                    this_thread::sleep_for(std::chrono::seconds(1));    // Give some time for processing
+        -:  157:                }
+        2:  158:                delete mst_algo;
+        2:  159:            } 
+        -:  160:            else {
+        1:  161:                string response = "Invalid command.\n";
+        1:  162:                write(client_fd, response.c_str(), response.size());
+        1:  163:            }
+        7:  164:        }
+        7:  165:    }
+        -:  166:}
+        -:  167:
+        4:  168:void sigint_handler(int sig) {
+        -:  169:    {
+        4:  170:        lock_guard<mutex> lock(mtx);
+        4:  171:        cout << "\nCaught SIGINT, closing socket...\n";
+        4:  172:        close(server_fd); // Close the socket
+        4:  173:    }
+        4:  174:    exit(0); // Exit the program
+        -:  175:}
+        -:  176:
+        4:  177:int main() {
+        4:  178:    signal(SIGINT, sigint_handler);
+        4:  179:    GraphServer server(PORT);
+        -:  180:    
+        -:  181:    // This while loop loops(waits) for new connections
+        -:  182:    while (true) {  
+        7:  183:        int client_fd = server.new_client();    
+        3:  184:        if (client_fd >= 0) {   // New client
+        3:  185:            string options_msg = "Options : Newgraph n,m   Newedge i,j    Removeedge i,j    MST\n";
+        3:  186:            write(client_fd, options_msg.c_str(), options_msg.size());
+        -:  187:            {
+        3:  188:                lock_guard<mutex> lock(mtx);
+        3:  189:                cout << "New client connected\n";
+        3:  190:            }
+        -:  191:            
+        -:  192:            // Start a proactor thread for each client
+        3:  193:            pthread_t tid = startProactor(client_fd, handle_client);
+        3:  194:            if (tid == 0) {
+    #####:  195:                cerr << "Failed to start proactor thread for client_fd: " << client_fd << endl;
+    #####:  196:                close(client_fd); // Close client socket on failure
+        -:  197:            }
+        3:  198:        }
+        3:  199:    }
+        -:  200:
+        -:  201:    return 0;
+    =====:  202:}

@@ -1,0 +1,186 @@
+        -:    0:Source:Graph.cpp
+        -:    0:Graph:main.gcno
+        -:    0:Data:main.gcda
+        -:    0:Runs:4
+        -:    1:#include <bits/stdc++.h>
+        -:    2:#include <iostream>
+        -:    3:#include <string>
+        -:    4:#include <typeinfo>
+        -:    5:#include <sstream>
+        -:    6:#include <vector>
+        -:    7:#include <unordered_map>
+        -:    8:#include <cstring>
+        -:    9:#include <unistd.h>
+        -:   10:#include <sys/types.h>
+        -:   11:#include <sys/socket.h>
+        -:   12:#include <netdb.h>
+        -:   13:#include <arpa/inet.h>
+        -:   14:#include <netinet/in.h>
+        -:   15:
+        -:   16:using namespace std;
+        -:   17:
+        -:   18:#define BUFFER_SIZE 1024
+        -:   19:
+        -:   20:// Declare the variables with extern
+        -:   21:extern pthread_cond_t cond;
+        -:   22:extern pthread_mutex_t pmutex;
+        -:   23:extern bool over_fifty;
+        -:   24:
+        -:   25:class Graph{
+        -:   26:    private :
+        -:   27:        int size;
+        -:   28:        int current_client_fd;
+        -:   29:        vector<vector<int>> adjmatrix;
+        -:   30:
+        2:   31:        bool New_graph(int v, int m){   // V - amount of vertecies, M - amount of edges
+        2:   32:            size = v;
+        2:   33:            adjmatrix.resize(size, vector<int>(size, -1));
+        -:   34:
+        -:   35:            char buffer[BUFFER_SIZE];
+        -:   36:            int valread;
+        2:   37:            string msg = "Please enter the edges: (for example- 0 1)\n";
+        2:   38:            write(current_client_fd,msg.c_str(),msg.size());
+        -:   39:            //cout << "Please enter the edges: (for example- 1 2)\n"; // Make it print to client!!
+        6:   40:            for (int i = 0; i < m; ++i) {
+        4:   41:                if(i != 0){
+        2:   42:                    msg = "next edge: (for example- 1 2)\n";
+        2:   43:                    write(current_client_fd,msg.c_str(),msg.size());
+        -:   44:                }        
+        -:   45:                int src, dest, weight;
+        4:   46:                valread = read(current_client_fd, buffer, BUFFER_SIZE);
+        4:   47:                buffer[valread] = '\0';
+        8:   48:                istringstream iss(buffer);
+        -:   49:                // Extract the two integers
+        4:   50:                iss >> src >> dest;
+        4:   51:                if(dest < 0 || dest >= v || src < 0 || src >= v)
+        -:   52:                {
+    #####:   53:                    return false;
+        -:   54:                }
+        4:   55:                msg = "Please enter the weight you want: ";
+        4:   56:                write(current_client_fd,msg.c_str(),msg.size());
+        -:   57:                int value;
+        4:   58:                valread = read(current_client_fd, buffer, BUFFER_SIZE);
+        4:   59:                if (valread > 0) {
+        -:   60:                    // Null-terminate the buffer to ensure it's a valid string
+        4:   61:                    buffer[valread] = '\0';
+        -:   62:                    // Convert the buffer to an integer
+        4:   63:                    value = atoi(buffer);
+        4:   64:                    printf("The integer value is: %d\n", value);
+        -:   65:                }
+        -:   66:
+        4:   67:                adjmatrix[src][dest] = value;
+        4:   68:                adjmatrix[dest][src] = value;
+        4:   69:            }
+        2:   70:            return true;
+        2:   71:        }
+        -:   72:
+        1:   73:        bool Removeedge(int v, int m){  // V - first vertex, M - second vertex
+        -:   74:
+        -:   75:            // Remove from the matrics (turn to -1)
+        1:   76:            if(adjmatrix[v][m] != -1){
+        1:   77:                adjmatrix[v][m] = -1;
+        1:   78:                adjmatrix[m][v] = -1;
+        1:   79:                return true;
+        -:   80:            }
+    #####:   81:            return false;
+        -:   82:        }
+        -:   83:
+        -:   84:
+        -:   85:    public :
+        2:   86:        void New_graph(vector<vector<int>> matrix){
+        2:   87:            size = matrix.size();
+        2:   88:            adjmatrix = matrix;
+        2:   89:        }
+        -:   90:
+        4:   91:        void Command_handle(int client, string command){
+        4:   92:            current_client_fd = client;
+        4:   93:            int v = 0;
+        4:   94:            int m = 0;
+        -:   95:
+        4:   96:            if (command.find("Newgraph") == 0) {
+        2:   97:                string numbers_part = command.substr(9);
+        2:   98:                istringstream iss(numbers_part);
+        -:   99:                char comma;
+        -:  100:                // Read the numbers separated by comma
+        2:  101:                iss >> v >> comma >> m;
+        2:  102:                size = v;
+        2:  103:                adjmatrix.clear();
+        2:  104:                if(New_graph(v,m)){
+        4:  105:                    string success_msg = "New graph created with " + to_string(v) + " vertices and " + to_string(m) + " edges.\n";
+        2:  106:                    write(current_client_fd, success_msg.c_str(), success_msg.size());
+        -:  107:                    //cout << "New graph created with " << v << " vertices and " << m << " edges.\n"; // Make it print to client!!
+        2:  108:                }
+        -:  109:                else{
+    #####:  110:                    string error_msg = "Error: Invalid edge input.\n";
+    #####:  111:                    write(current_client_fd, error_msg.c_str(), error_msg.size());
+        -:  112:                    //cout << "error\n";
+    #####:  113:                }
+        -:  114:
+        4:  115:            }else if(command.find("Newedge") == 0){
+        -:  116:                char buffer[BUFFER_SIZE];
+        1:  117:                string numbers_part = command.substr(8);
+        1:  118:                istringstream iss(numbers_part);
+        -:  119:                char comma;
+        -:  120:                // Read the numbers separated by comma
+        1:  121:                iss >> v >> comma >> m;
+        1:  122:                string success_msg2 = "Please enter the weight you want: ";
+        1:  123:                write(current_client_fd, success_msg2.c_str(), success_msg2.size());
+        -:  124:                int value;
+        1:  125:                int valread = read(current_client_fd, buffer, BUFFER_SIZE);
+        1:  126:                if (valread > 0) {
+        -:  127:                    // Null-terminate the buffer to ensure it's a valid string
+        1:  128:                    buffer[valread] = '\0';
+        -:  129:                    // Convert the buffer to an integer
+        1:  130:                    value = atoi(buffer);
+        1:  131:                    printf("The integer value is: %d\n", value);
+        -:  132:                }
+        -:  133:
+        1:  134:                adjmatrix[v][m] = value;
+        1:  135:                adjmatrix[m][v] = value;
+        -:  136:
+        2:  137:                string success_msg = "Edge (" + to_string(v) + " -> " + to_string(m) + ") added.\n";
+        1:  138:                write(current_client_fd, success_msg.c_str(), success_msg.size());
+        -:  139:                //cout << "Edge (" << v << " -> " << m << ") added.\n";   // Make it print to client!!                      
+        2:  140:            }else if(command.find("Removeedge") == 0){
+        1:  141:                string numbers_part = command.substr(11);
+        1:  142:                istringstream iss(numbers_part);
+        -:  143:                char comma;
+        -:  144:                // Read the numbers separated by comma  
+        1:  145:                iss >> v >> comma >> m;
+        1:  146:                if(Removeedge(v,m)){
+        2:  147:                    string success_msg = "Edge (" + to_string(v) + " -> " + to_string(m) + ") removed.\n";
+        1:  148:                    write(current_client_fd, success_msg.c_str(), success_msg.size());
+        -:  149:                    //cout << "Edge (" << v << " -> " << m << ") removed.\n"; // Make it print to client!!
+        1:  150:                }
+        -:  151:                else{
+    #####:  152:                    string error_msg = "No such edge found.\n";
+    #####:  153:                    write(current_client_fd, error_msg.c_str(), error_msg.size());
+        -:  154:                    //cout << "No such edge";
+    #####:  155:                }
+        1:  156:            }else {
+    #####:  157:                string error_msg = "Invalid command.\n";
+    #####:  158:                write(current_client_fd, error_msg.c_str(), error_msg.size());
+        -:  159:                //cout << "Invalid command.\n";
+    #####:  160:            }
+        4:  161:        }
+        -:  162:
+      140:  163:        vector<vector<int>> getAdjacencyMatrix() const{
+      140:  164:            return adjmatrix;
+        -:  165:        }
+        -:  166:
+        -:  167:        int getEdgeWeight(int u, int v) const{
+        -:  168:            return adjmatrix[u][v];
+        -:  169:        }
+        -:  170:
+        -:  171:        // Print the adjacency matrix
+        6:  172:        void printGraph() const {
+        -:  173:            
+       21:  174:            for (int i = 0; i < size; ++i) {
+       54:  175:                for (int j = 0; j < size; ++j) {
+       39:  176:                    std::cout << adjmatrix[i][j] << " ";
+        -:  177:                }
+       15:  178:                std::cout << std::endl;
+        -:  179:            }
+        6:  180:        }
+        -:  181:
+        -:  182:};

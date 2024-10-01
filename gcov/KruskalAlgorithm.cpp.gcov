@@ -1,0 +1,98 @@
+        -:    0:Source:KruskalAlgorithm.cpp
+        -:    0:Graph:main.gcno
+        -:    0:Data:main.gcda
+        -:    0:Runs:4
+        -:    1:#include <iostream>
+        -:    2:#include <vector>
+        -:    3:#include <algorithm>
+        -:    4:#include "MSTAlgorithm.hpp"
+        -:    5:using namespace std;
+        -:    6:
+        -:    7:
+        -:    8:
+        -:    9:class KruskalAlgorithm : public MSTAlgorithm {
+        -:   10:public:
+        1:   11:    KruskalAlgorithm() {}
+        -:   12:    //~MSTAlgorithm() {}
+        -:   13:
+        1:   14:    Graph calculateMST(const Graph &g) {
+        1:   15:        vector<vector<int>> graph = g.getAdjacencyMatrix();
+        1:   16:        int n = graph.size();
+        1:   17:        vector<Edge> edges;
+        -:   18:
+        -:   19:        // Convert adjacency matrix to edge list
+        4:   20:        for (int i = 0; i < n; ++i) {
+        6:   21:            for (int j = i + 1; j < n; ++j) {
+        3:   22:                if (graph[i][j] != -1) {
+        3:   23:                    edges.emplace_back(i, j, graph[i][j]);
+        -:   24:                }
+        -:   25:            }
+        -:   26:        }
+        -:   27:
+        -:   28:        // Sort edges by weight
+        1:   29:        sort(edges.begin(), edges.end(), compareEdge);
+        -:   30:
+        -:   31:        // Initialize Union-Find data structures
+        1:   32:        vector<int> parent(n);
+        1:   33:        vector<int> rank(n, 0);
+        4:   34:        for (int i = 0; i < n; ++i) {
+        3:   35:            parent[i] = i;
+        -:   36:        }
+        -:   37:
+        -:   38:        // MST result as adjacency matrix with -1 indicating no edge
+        2:   39:        vector<vector<int>> mst(n, vector<int>(n, -1));
+        -:   40:
+        -:   41:        // Kruskal's algorithm
+        1:   42:        int edgeCount = 0;
+        2:   43:        for (const auto &edge : edges) {
+        2:   44:            if (find(edge.u, parent) != find(edge.v, parent)) {
+        2:   45:                unionSets(edge.u, edge.v, parent, rank);
+        2:   46:                mst[edge.u][edge.v] = edge.weight;
+        2:   47:                mst[edge.v][edge.u] = edge.weight;
+        2:   48:                edgeCount++;
+        2:   49:                if (edgeCount == n - 1) {
+        1:   50:                    break;
+        -:   51:                }
+        -:   52:            }
+        -:   53:        }
+        1:   54:        Graph Tree;
+        1:   55:        Tree.New_graph(mst);
+        2:   56:        return Tree;
+        1:   57:    }
+        -:   58:
+        -:   59:private:
+        -:   60:    // Struct to represent an edge
+        -:   61:    struct Edge {
+        -:   62:        int u, v, weight;
+        3:   63:        Edge(int u, int v, int weight) : u(u), v(v), weight(weight) {}
+        -:   64:    };
+        -:   65:
+        -:   66:    // Comparator to sort edges by weight
+        4:   67:    static bool compareEdge(const Edge &a, const Edge &b) {
+        4:   68:        return a.weight < b.weight;
+        -:   69:    }
+        -:   70:
+        -:   71:    // Find function for Union-Find (Disjoint Set)
+       10:   72:    int find(int node, vector<int> &parent) {
+       10:   73:        if (parent[node] != node) {
+        2:   74:            parent[node] = find(parent[node], parent);  // Path compression
+        -:   75:        }
+       10:   76:        return parent[node];
+        -:   77:    }
+        -:   78:
+        -:   79:    // Union function for Union-Find (Disjoint Set)
+        2:   80:    void unionSets(int u, int v, vector<int> &parent, vector<int> &rank) {
+        2:   81:        int rootU = find(u, parent);
+        2:   82:        int rootV = find(v, parent);
+        2:   83:        if (rootU != rootV) {
+        2:   84:            if (rank[rootU] > rank[rootV]) {
+    #####:   85:                parent[rootV] = rootU;
+        2:   86:            } else if (rank[rootU] < rank[rootV]) {
+        1:   87:                parent[rootU] = rootV;
+        -:   88:            } else {
+        1:   89:                parent[rootV] = rootU;
+        1:   90:                rank[rootU]++;
+        -:   91:            }
+        -:   92:        }
+        2:   93:    }
+        -:   94:};
