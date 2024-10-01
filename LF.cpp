@@ -31,8 +31,12 @@ ThreadPool::ThreadPool(size_t numThreads) : stop(false) {
 }
 
 ThreadPool::~ThreadPool() {
-    stop = true;
-    cv.notify_all();
+    {
+        std::lock_guard<std::mutex> lock(mtx);  // Locking the mutex
+        stop = true;  // Set stop flag while holding the lock
+        cv.notify_all();
+    }
+
     for (auto& worker : workers) {
         worker.join();
     }
@@ -42,8 +46,9 @@ void ThreadPool::enqueue(Graph g, int client_fd) {
     {
         std::lock_guard<std::mutex> lock(mtx);
         tasks.emplace(g,client_fd);
+        cv.notify_one();
     }
-    cv.notify_one();
+    
 }
 
 void ThreadPool::workerFunction() {
@@ -58,7 +63,7 @@ void ThreadPool::workerFunction() {
             task = tasks.front();
             tasks.pop();
         }
-
+        
         // Process the task
         Total_weight(task.first, task.second);
         Longest_distance(task.first, task.second);

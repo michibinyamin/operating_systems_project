@@ -7,7 +7,6 @@
 #include "MSTAlgorithm.hpp"
 
 //class Graph;
-
 class ActiveObject {
 public:
     using Task = std::function<void(Graph Tree, int client_fd)>;
@@ -20,8 +19,8 @@ public:
         {
             std::unique_lock<std::mutex> lock(mutex_);
             stop_ = true;
+            cv_.notify_all();
         }
-        cv_.notify_all();
         thread_.join();
     }
 

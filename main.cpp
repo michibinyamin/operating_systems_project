@@ -117,7 +117,7 @@ void* handle_client(int client_fd) {
                 graph.printGraph();
                 cout << "\n";
             }
-            // msp command
+            // mst command
             else if(command.find("MST") == 0){
                 string msg = "Which strategy whould you like to use?\n1 - Prim's algorithm\n2 - Kruskal's algorithm\n";
                 write(client_fd, msg.c_str(), msg.size());
@@ -125,10 +125,10 @@ void* handle_client(int client_fd) {
                 string command2(buffer, strategy);
                 //
                 // Using factory design pattern to return a stratigy 
+                lock_guard<mutex> lock(mtx); // Protect access to shared resource
                 MSTAlgorithm* mst_algo = MSTFactory::createMSTSolver(std::stoi(command2)-1);
                 //
                 // Initiate the chosen strategy. this returns a graph object but as an mst
-                lock_guard<mutex> lock(mtx); // Protect access to shared resource
                 Graph tree = mst_algo->calculateMST(graph);
                 cout << "The MST : \n";
                 tree.printGraph();  // Test
@@ -153,10 +153,11 @@ void* handle_client(int client_fd) {
                     */
                     LeaderFollower lf(3); // Create Leader with a ThreadPool of 3 threads
                     lf.addTask(tree,client_fd);  // Add task
+                    //lf.addTask(tree,client_fd);
                     this_thread::sleep_for(std::chrono::seconds(1));    // Give some time for processing
                 }
                 delete mst_algo;
-            } 
+            }
             else {
                 string response = "Invalid command.\n";
                 write(client_fd, response.c_str(), response.size());

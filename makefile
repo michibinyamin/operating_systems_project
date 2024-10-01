@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -Wall -Wextra -pedantic -pthread -fprofile-arcs -ftest-coverage
+CXXFLAGS = -pedantic -pthread #-fprofile-arcs -ftest-coverage 
 LDFLAGS = -lgcov
 
 # Executable name
